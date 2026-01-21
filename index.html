@@ -11,7 +11,11 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
         body {
             margin: 0; padding: 0;
-            width: 100vw; height: 100vh;
+            width: 100vw;
+            /* 🌟 核心修复：使用 dvh (Dynamic Viewport Height) */
+            /* 这能自动减去 iPad/iPhone 浏览器地址栏的高度，防止底部被遮挡 */
+            height: 100vh; /* 兼容旧浏览器 */
+            height: 100dvh; 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             color: #fff;
             overflow: hidden;
@@ -29,26 +33,21 @@
             display: flex; flex-direction: column;
         }
 
-        /* 🚫 [iPad适配修改] 
-           注释掉下面这段代码。之前是为了在电脑上模拟手机大小。
-           在iPad上我们需要它全屏显示，否则会变成一个小方块。
-           内部元素（如按钮、网格）自带了 max-width，会自动居中，放心使用。
-        */
-        /* @media (min-width: 768px) {
+        /* 💻 PC端适配 */
+        @media (min-width: 768px) {
             #app-root {
                 max-width: 450px; max-height: 900px;
                 border-radius: 20px;
                 box-shadow: 0 0 50px rgba(255, 255, 255, 0.1);
                 border: 4px solid #333;
             }
-        } 
-        */
+        }
 
-        /* 背景图 (修复：使用本地路径) */
+        /* 背景图 */
         #bg-image {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             object-fit: cover; z-index: -2;
-            opacity: 0.8; /* 稍微暗一点，保证文字清晰 */
+            opacity: 0.8;
         }
         #global-mask {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -63,6 +62,7 @@
             position: relative;
         }
         .panel.active { display: flex; }
+
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         /* Setup Layout */
@@ -71,9 +71,10 @@
 
         .middle-area { flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; overflow: hidden; }
         
+        /* 🌟 修复：增加底部安全距离，防止被浏览器工具栏遮挡 */
         .bottom-area {
             height: 35vh; display: flex; flex-direction: column; justify-content: flex-end;
-            padding-bottom: max(20px, env(safe-area-inset-bottom));
+            padding-bottom: max(40px, env(safe-area-inset-bottom)); /* 加大 padding */
             width: 90%; max-width: 600px; margin: 0 auto; flex-shrink: 0;
         }
 
@@ -190,10 +191,12 @@
             font-weight: bold; font-size: 16px; border-radius: 25px; cursor: pointer;
         }
 
-        /* Bottom Control Bar */
+        /* 🌟 修复：底部控制栏位置 */
         .game-bottom-bar {
             position: absolute; bottom: 0; left: 0; width: 100%;
-            padding: 10px 30px; padding-bottom: max(10px, env(safe-area-inset-bottom));
+            padding: 10px 30px; 
+            /* 适配 iPad 底部，增加 padding 防止被浏览器栏遮挡 */
+            padding-bottom: max(30px, env(safe-area-inset-bottom));
             display: flex; justify-content: space-between; z-index: 100;
             background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
         }
@@ -375,19 +378,6 @@ const ROLE_CONFIG = {
     10: { seer: 1, wolf: 2, villager: 7 }
 };
 
-const FIXED_SLOTS_DEF = [
-  { type: 'seer', name: '先知', img: './images/seer.png' },
-  { type: 'wolf', name: '狼人', img: './images/wolf.png' },
-  { type: 'wolf', name: '狼人', img: './images/wolf.png' },
-  { type: 'villager', name: '村民', img: './images/villager.png' },
-  { type: 'villager', name: '村民', img: './images/villager.png' },
-  { type: 'villager', name: '村民', img: './images/villager.png' },
-  { type: 'villager', name: '村民', img: './images/villager.png' },
-  { type: 'villager', name: '村民', img: './images/villager.png' },
-  { type: 'villager', name: '村民', img: './images/villager.png' },
-  { type: 'villager', name: '村民', img: './images/villager.png' }
-];
-
 const DIFFICULTY_OPTS = [
     { label: "简单", key: "SIMPLE" }, { label: "普通", key: "NORMAL" },
     { label: "中等", key: "MEDIUM" }, { label: "困难", key: "HARD" }, { label: "地狱", key: "HELL" }
@@ -484,10 +474,23 @@ const App = {
         document.getElementById('timer-text').innerText = '时间: ' + TIMER_OPTS[this.state.timerIdx] + '分';
         
         const config = ROLE_CONFIG[this.state.playerCount];
+        const fixedSlots = [
+          { type: 'seer', name: '先知', img: './images/seer.png' },
+          { type: 'wolf', name: '狼人', img: './images/wolf.png' },
+          { type: 'wolf', name: '狼人', img: './images/wolf.png' },
+          { type: 'villager', name: '村民', img: './images/villager.png' },
+          { type: 'villager', name: '村民', img: './images/villager.png' },
+          { type: 'villager', name: '村民', img: './images/villager.png' },
+          { type: 'villager', name: '村民', img: './images/villager.png' },
+          { type: 'villager', name: '村民', img: './images/villager.png' },
+          { type: 'villager', name: '村民', img: './images/villager.png' },
+          { type: 'villager', name: '村民', img: './images/villager.png' }
+        ];
+        
         let currentCounts = { seer: 0, wolf: 0, villager: 0 };
         let html = '';
         
-        FIXED_SLOTS_DEF.forEach((slot) => {
+        fixedSlots.forEach((slot) => {
             const maxAllowed = config[slot.type] || 0;
             let isActive = false;
             if (currentCounts[slot.type] < maxAllowed) {
