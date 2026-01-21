@@ -11,7 +11,9 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
         body {
             margin: 0; padding: 0;
-            width: 100vw; height: 100vh; height: 100dvh;
+            width: 100vw;
+            /* 使用 dvh 适配 iPad/iOS 浏览器地址栏变化 */
+            height: 100vh; height: 100dvh;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             color: #fff;
             overflow: hidden;
@@ -20,11 +22,10 @@
             align-items: center; justify-content: center;
         }
 
-        /* 📱 APP ROOT - iPad 全屏适配 */
+        /* 📱 APP ROOT - 全屏适配 (已移除 PC 限制) */
         #app-root {
             width: 100%; height: 100%;
             position: relative;
-            /* 移除之前的 max-width 限制，让iPad全屏显示 */
             background-color: transparent; 
             overflow: hidden;
             display: flex; flex-direction: column;
@@ -75,18 +76,19 @@
             height: 30%; /* 底部操作区 */
             display: flex; flex-direction: column; justify-content: flex-end;
             padding-bottom: max(40px, env(safe-area-inset-bottom));
-            width: 80%; /* iPad上不需要太宽，80%即可 */
+            width: 85%; /* iPad 宽度适配 */
+            max-width: 800px; /* 放宽限制 */
             margin: 0 auto; flex-shrink: 0;
         }
 
         /* ================= Components ================= */
-        /* Avatar Grid (首页头像) - 放大版 */
+        /* Avatar Grid (首页头像) - 适配 iPad */
         .avatar-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
             gap: 20px; /* 间距加大 */
-            width: 85%; /* 宽度占满 */
-            max-width: 800px; /* 限制最大宽度，防止横屏太散 */
+            width: 85%; 
+            max-width: 700px; /* 扩大容器宽度 */
         }
         .role-item { display: flex; flex-direction: column; align-items: center; }
         .avatar-circle {
@@ -154,7 +156,7 @@
             border-radius: 50%; border: 5px solid #ffd700; 
             margin-bottom: 60px; background: rgba(0,0,0,0.3); 
         }
-        .identity-selector { display: flex; width: 100%; justify-content: space-around; max-width: 600px; }
+        .identity-selector { display: flex; width: 100%; justify-content: space-around; max-width: 700px; }
         .id-btn { display: flex; flex-direction: column; align-items: center; opacity: 0.8; transition: 0.3s; cursor: pointer; }
         .id-btn.selected { opacity: 1; transform: scale(1.15); }
         .id-btn img { 
@@ -167,7 +169,7 @@
 
         /* Word Pick (Waterfall) - iPad 优化 */
         .word-card-list {
-            width: 90%; max-width: 800px; /* 宽度放宽 */
+            width: 90%; max-width: 700px; /* 宽度放宽 */
             display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
             padding-bottom: 100px; overflow-y: auto;
         }
@@ -276,7 +278,7 @@
 <!-- 📱 APP ROOT -->
 <div id="app-root">
 
-    <!-- Layer 0: Background -->
+    <!-- Layer 0: Background (修复: 使用相对路径) -->
     <img id="bg-image" src="./images/bg.png" alt="background">
     <div id="global-mask"></div>
 
@@ -286,7 +288,9 @@
             <div class="home-title">狼人真言</div>
         </div>
         <div class="middle-area">
-            <div class="avatar-grid" id="setup-grid"></div>
+            <div class="avatar-grid" id="setup-grid">
+                <!-- JS will inject avatars here -->
+            </div>
         </div>
         <div class="bottom-area">
             <div class="info-text" id="config-summary">配置加载中...</div>
@@ -341,8 +345,11 @@
     <div id="panel-mayor-pick" class="panel">
         <div class="panel-container" style="justify-content: flex-start; padding-top: 15vh;">
             <div class="panel-title" style="font-size: 32px;">请村长选择词语</div>
-            <div class="word-card-list" id="word-list"></div>
+            <div class="word-card-list" id="word-list">
+                <!-- JS injected -->
+            </div>
         </div>
+        <!-- Bottom Bar injected dynamically or shared -->
     </div>
 
     <!-- Panel 3: NIGHT -->
@@ -642,13 +649,14 @@ const App = {
 
         try {
             setStatus("先知请睁眼"); AudioController.play('seer_open'); await wait(2500);
-            setWord(); await wait(5000); 
+            setWord(); await wait(7000); 
             fadeOut(); await wait(2000);
             
             setStatus("先知请闭眼"); AudioController.play('seer_close'); await wait(3000);
 
             setStatus("狼人请睁眼"); AudioController.play('wolf_open'); await wait(2500);
-            setWord(); await wait(5000);
+            // 再次调用 setWord 会重置 opacity 为 1
+            setWord(); await wait(7000);
             fadeOut(); await wait(2000);
 
             setStatus("狼人请闭眼"); AudioController.play('wolf_close'); await wait(3000);
