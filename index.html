@@ -285,7 +285,7 @@
     <!-- Panel 0: SETUP -->
     <div id="panel-setup" class="panel active">
         <div class="top-area">
-            <div class="home-title">狼人真言</div>
+            <div class="home-title"></div>
         </div>
         <div class="middle-area">
             <div class="avatar-grid" id="setup-grid">
@@ -649,14 +649,14 @@ const App = {
 
         try {
             setStatus("先知请睁眼"); AudioController.play('seer_open'); await wait(2500);
-            setWord(); await wait(7000); 
+            setWord(); await wait(5000); 
             fadeOut(); await wait(2000);
             
             setStatus("先知请闭眼"); AudioController.play('seer_close'); await wait(3000);
 
             setStatus("狼人请睁眼"); AudioController.play('wolf_open'); await wait(2500);
             // 再次调用 setWord 会重置 opacity 为 1
-            setWord(); await wait(7000);
+            setWord(); await wait(5000);
             fadeOut(); await wait(2000);
 
             setStatus("狼人请闭眼"); AudioController.play('wolf_close'); await wait(3000);
