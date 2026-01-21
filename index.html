@@ -5,42 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>狼人真言 (Web版)</title>
+    <title>狼人真言 (iPad版)</title>
     <style>
         /* ================= Global Reset ================= */
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
         body {
             margin: 0; padding: 0;
-            width: 100vw;
-            /* 🌟 核心修复：使用 dvh (Dynamic Viewport Height) */
-            /* 这能自动减去 iPad/iPhone 浏览器地址栏的高度，防止底部被遮挡 */
-            height: 100vh; /* 兼容旧浏览器 */
-            height: 100dvh; 
+            width: 100vw; height: 100vh; height: 100dvh;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             color: #fff;
             overflow: hidden;
             display: flex; flex-direction: column;
-            background-color: #000;
+            background-color: #1a1b26;
             align-items: center; justify-content: center;
         }
 
-        /* 📱 手机容器模拟 */
+        /* 📱 APP ROOT - iPad 全屏适配 */
         #app-root {
             width: 100%; height: 100%;
             position: relative;
-            background-color: #1a1b26;
+            /* 移除之前的 max-width 限制，让iPad全屏显示 */
+            background-color: transparent; 
             overflow: hidden;
             display: flex; flex-direction: column;
-        }
-
-        /* 💻 PC端适配 */
-        @media (min-width: 768px) {
-            #app-root {
-                max-width: 450px; max-height: 900px;
-                border-radius: 20px;
-                box-shadow: 0 0 50px rgba(255, 255, 255, 0.1);
-                border: 4px solid #333;
-            }
         }
 
         /* 背景图 */
@@ -54,99 +41,151 @@
             background: rgba(0, 0, 0, 0.6); z-index: -1;
         }
 
-        /* ================= Panels ================= */
+        /* ================= Layout Sections ================= */
         .panel {
             display: none; width: 100%; height: 100%;
             flex-direction: column;
             animation: fadeIn 0.5s ease-out;
             position: relative;
+            z-index: 10;
         }
         .panel.active { display: flex; }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Setup Layout */
-        .top-area { height: 15vh; display: flex; align-items: flex-end; justify-content: center; flex-shrink: 0; }
-        .home-title { font-size: 32px; font-weight: 900; color: #ffd700; text-shadow: 0 2px 5px rgba(0,0,0,0.8); letter-spacing: 2px; }
-
-        .middle-area { flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; overflow: hidden; }
-        
-        /* 🌟 修复：增加底部安全距离，防止被浏览器工具栏遮挡 */
-        .bottom-area {
-            height: 35vh; display: flex; flex-direction: column; justify-content: flex-end;
-            padding-bottom: max(40px, env(safe-area-inset-bottom)); /* 加大 padding */
-            width: 90%; max-width: 600px; margin: 0 auto; flex-shrink: 0;
+        /* iPad 布局比例优化 */
+        .top-area { 
+            height: 15%; /* 顶部留白 */
+            display: flex; align-items: flex-end; justify-content: center; 
+            flex-shrink: 0; 
+        }
+        .home-title {
+            font-size: 48px; /* 字体加大 */
+            font-weight: 900; color: #ffd700;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.8); letter-spacing: 4px;
         }
 
-        /* Avatar Grid */
-        .avatar-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; width: 95%; max-width: 400px; }
+        .middle-area { 
+            flex: 1; /* 占据中间主要空间 */
+            display: flex; align-items: center; justify-content: center; 
+            width: 100%; overflow: hidden; 
+        }
+        
+        .bottom-area {
+            height: 30%; /* 底部操作区 */
+            display: flex; flex-direction: column; justify-content: flex-end;
+            padding-bottom: max(40px, env(safe-area-inset-bottom));
+            width: 80%; /* iPad上不需要太宽，80%即可 */
+            margin: 0 auto; flex-shrink: 0;
+        }
+
+        /* ================= Components ================= */
+        /* Avatar Grid (首页头像) - 放大版 */
+        .avatar-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px; /* 间距加大 */
+            width: 85%; /* 宽度占满 */
+            max-width: 800px; /* 限制最大宽度，防止横屏太散 */
+        }
         .role-item { display: flex; flex-direction: column; align-items: center; }
         .avatar-circle {
-            width: 45px; height: 45px; border-radius: 50%; background: rgba(0,0,0,0.3);
-            display: flex; align-items: center; justify-content: center; overflow: hidden;
-            margin-bottom: 4px; border: 2px solid transparent;
+            width: 80px; height: 80px; /* 头像加大 */
+            border-radius: 50%;
+            background: rgba(0,0,0,0.3);
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden; margin-bottom: 8px;
+            border: 3px solid transparent;
         }
         .avatar-icon { width: 100%; height: 100%; object-fit: cover; }
-        .role-name { font-size: 10px; color: #ccc; }
-        .role-item.active .avatar-circle { background: #4a506b; border-color: #ffd700; box-shadow: 0 0 8px rgba(255, 215, 0, 0.4); }
-        .role-item.active .role-name { color: #fff; font-weight: bold; }
+        .role-name { font-size: 16px; color: #ccc; font-weight: bold; }
+        
+        .role-item.active .avatar-circle { background: #4a506b; border-color: #ffd700; box-shadow: 0 0 15px rgba(255, 215, 0, 0.5); }
+        .role-item.active .role-name { color: #fff; }
         .role-item.inactive { opacity: 0.3; filter: grayscale(100%); transform: scale(0.9); }
 
-        /* Settings UI */
-        .info-text { text-align: center; margin-bottom: 10px; font-size: 12px; color: rgba(255,255,255,0.6); background: rgba(0,0,0,0.2); padding: 2px 8px; border-radius: 10px; align-self: center; }
-        .settings-row { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 15px; }
+        /* Settings UI - 放大版 */
+        .info-text { 
+            text-align: center; margin-bottom: 20px; 
+            font-size: 18px; /* 字体加大 */
+            color: rgba(255,255,255,0.7); background: rgba(0,0,0,0.3); 
+            padding: 5px 15px; border-radius: 15px; align-self: center; 
+        }
+        .settings-row { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 30px; }
         .setting-capsule {
-            height: 40px; background: rgba(60, 64, 85, 0.9); border-radius: 8px;
+            height: 60px; /* 胶囊增高 */
+            background: rgba(60, 64, 85, 0.9); border-radius: 12px;
             display: flex; align-items: center; justify-content: center;
-            font-size: 14px; color: #eee; border: 1px solid rgba(255,255,255,0.1);
-            flex: 1; cursor: pointer;
+            font-size: 20px; /* 字体加大 */
+            color: #eee; border: 1px solid rgba(255,255,255,0.1);
+            flex: 1; user-select: none; cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
         .player-counter { justify-content: space-between; padding: 0; background: rgba(44, 46, 62, 0.9); }
-        .counter-btn { width: 40px; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #ffd700; font-weight: bold; }
+        .counter-btn { width: 60px; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 30px; color: #ffd700; font-weight: bold; }
         .counter-num { font-weight: bold; }
 
+        /* Buttons - 放大版 */
         .btn-main {
-            width: auto; min-width: 200px; padding: 12px 40px;
+            width: auto; min-width: 300px; /* 按钮加宽 */
+            padding: 15px 50px;
             background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-            color: #3e2723; border-radius: 30px; font-weight: 900; font-size: 18px;
-            border: none; box-shadow: 0 4px 10px rgba(255, 165, 0, 0.4);
-            align-self: center; text-align: center; animation: pulse 2s infinite; cursor: pointer;
+            color: #3e2723; border-radius: 50px; font-weight: 900; font-size: 24px;
+            border: none; box-shadow: 0 6px 15px rgba(255, 165, 0, 0.4);
+            align-self: center; text-align: center;
+            animation: pulse 2s infinite; cursor: pointer;
         }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
 
-        /* Common Panel */
-        .panel-container { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; padding: 20px; justify-content: center; }
-        .panel-title { font-size: 24px; font-weight: bold; color: #ffd700; margin-bottom: 30px; text-shadow: 0 1px 2px rgba(0,0,0,0.8); text-align: center; }
+        /* Common Panel Container */
+        .panel-container {
+            width: 100%; height: 100%; 
+            display: flex; flex-direction: column; align-items: center; 
+            padding: 40px; justify-content: center;
+        }
+        .panel-title { 
+            font-size: 36px; font-weight: bold; color: #ffd700; 
+            margin-bottom: 50px; text-shadow: 0 2px 5px rgba(0,0,0,0.8); text-align: center; 
+        }
         
-        /* Mayor */
-        .mayor-avatar-large img { width: 120px; height: 120px; border-radius: 50%; border: 3px solid #ffd700; margin-bottom: 40px; background: rgba(0,0,0,0.3); }
-        .identity-selector { display: flex; width: 100%; justify-content: space-around; max-width: 400px; }
+        /* Mayor Identity - 放大 */
+        .mayor-avatar-large img { 
+            width: 180px; height: 180px; /* 放大 */
+            border-radius: 50%; border: 5px solid #ffd700; 
+            margin-bottom: 60px; background: rgba(0,0,0,0.3); 
+        }
+        .identity-selector { display: flex; width: 100%; justify-content: space-around; max-width: 600px; }
         .id-btn { display: flex; flex-direction: column; align-items: center; opacity: 0.8; transition: 0.3s; cursor: pointer; }
-        .id-btn.selected { opacity: 1; transform: scale(1.2); }
-        .id-btn img { width: 70px; height: 70px; border-radius: 50%; margin-bottom: 10px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); }
-        .id-btn.selected img { border-color: #ffd700; box-shadow: 0 0 15px #ffd700; }
+        .id-btn.selected { opacity: 1; transform: scale(1.15); }
+        .id-btn img { 
+            width: 100px; height: 100px; /* 放大 */
+            border-radius: 50%; margin-bottom: 15px; 
+            background: rgba(0,0,0,0.3); border: 2px solid rgba(255,255,255,0.2); 
+        }
+        .id-btn span { font-size: 20px; color: #fff; font-weight: bold; }
+        .id-btn.selected img { border-color: #ffd700; box-shadow: 0 0 20px #ffd700; }
 
-        /* Words (2 cols) */
+        /* Word Pick (Waterfall) - iPad 优化 */
         .word-card-list {
-            width: 100%; max-width: 500px;
-            display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
-            padding-bottom: 80px; overflow-y: auto;
+            width: 90%; max-width: 800px; /* 宽度放宽 */
+            display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+            padding-bottom: 100px; overflow-y: auto;
         }
         .word-card {
-            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.8);
-            padding: 15px 10px; border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05); border: 2px solid rgba(255, 255, 255, 0.8);
+            padding: 25px 20px; border-radius: 16px;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            min-height: 80px; cursor: pointer; transition: 0.2s;
+            min-height: 120px; cursor: pointer; transition: 0.2s;
         }
-        .card-selected { background: #FFD700 !important; border-color: #FFD700 !important; transform: scale(1.05); box-shadow: 0 5px 15px rgba(255, 215, 0, 0.4); }
+        .card-selected { background: #FFD700 !important; border-color: #FFD700 !important; transform: scale(1.02); box-shadow: 0 5px 20px rgba(255, 215, 0, 0.4); }
         .card-selected .card-text, .card-selected .card-category { color: #3e2723; text-shadow: none; }
-        .card-text { font-size: 18px; font-weight: bold; color: #fff; text-align: center; margin-bottom: 5px; }
-        .card-category { font-size: 12px; color: #aaa; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; }
+        .card-text { font-size: 28px; font-weight: bold; color: #fff; text-align: center; margin-bottom: 8px; }
+        .card-category { font-size: 16px; color: #aaa; background: rgba(0,0,0,0.3); padding: 4px 10px; border-radius: 6px; }
 
-        /* Night Mode (Fixed) */
+        /* Night Mode & Tabletop - 贴边适配 */
         .night-status {
-            font-size: 40px; font-weight: 900; color: #ffd700; text-align: center;
-            letter-spacing: 3px; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+            font-size: 60px; font-weight: 900; color: #ffd700; text-align: center;
+            letter-spacing: 5px; text-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
             animation: breathe 3s infinite;
         }
         @keyframes breathe { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
@@ -156,51 +195,60 @@
             position: absolute; top: 50%;
             display: flex; align-items: center; justify-content: center;
             white-space: nowrap;
+            /* 移除背景框，纯文字 */
         }
         .target-word {
-            font-size: 60px; font-weight: 900; color: #FFD700; letter-spacing: 5px;
-            text-shadow: 2px 2px 10px rgba(0,0,0,1); line-height: 1.2;
+            font-size: 80px; font-weight: 900; color: #FFD700; letter-spacing: 5px;
+            text-shadow: 3px 3px 15px rgba(0,0,0,1); line-height: 1.2;
             transition: opacity 2s ease-out;
         }
-        .normal-view { left: 10px; transform: translateY(-50%) rotate(-90deg); transform-origin: center; }
-        .rotated-view { right: 10px; transform: translateY(-50%) rotate(90deg); transform-origin: center; }
+        /* 贴近屏幕边缘 (30px) */
+        .normal-view { left: 30px; transform: translateY(-50%) rotate(-90deg); transform-origin: center; }
+        .rotated-view { right: 30px; transform: translateY(-50%) rotate(90deg); transform-origin: center; }
 
-        /* Game Timer */
-        .timer-display { font-size: 80px; font-weight: bold; color: #fff; font-family: monospace; text-shadow: 0 0 10px rgba(0,0,0,0.5); margin-bottom: 20px; }
+        /* Game Timer - 放大 */
+        .timer-display { 
+            font-size: 120px; /* 巨大 */
+            font-weight: bold; color: #fff; font-family: monospace; 
+            text-shadow: 0 0 20px rgba(0,0,0,0.5); margin-bottom: 30px; 
+        }
         .btn-word-guessed {
-            width: auto; min-width: 280px; padding: 10px 40px;
-            background: #f0c040; color: #3e2723; font-weight: bold; font-size: 18px;
-            border-radius: 25px; border: none; cursor: pointer; white-space: nowrap;
+            width: auto; min-width: 350px; padding: 15px 50px;
+            background: #f0c040; color: #3e2723; font-weight: bold; font-size: 24px;
+            border-radius: 40px; border: none; cursor: pointer; white-space: nowrap;
+            box-shadow: 0 5px 15px rgba(240, 192, 64, 0.4);
         }
 
-        /* Result */
-        .result-avatars { display: flex; width: 100%; justify-content: space-around; max-width: 500px; flex: 1; align-items: center; }
+        /* Result - 放大 */
+        .result-avatars { display: flex; width: 100%; justify-content: space-around; max-width: 700px; flex: 1; align-items: center; }
         .winner-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: 0.2s; }
         .winner-circle {
-            width: 80px; height: 80px; border-radius: 50%; margin-bottom: 10px;
-            border: 3px solid rgba(255,255,255,0.3); overflow: hidden;
+            width: 120px; height: 120px; /* 放大 */
+            border-radius: 50%; margin-bottom: 15px;
+            border: 4px solid rgba(255,255,255,0.3); overflow: hidden;
             display: flex; align-items: center; justify-content: center;
         }
         .winner-circle img { width: 100%; height: 100%; }
+        .winner-item span { font-size: 24px; color: #ccc; font-weight: bold; } /* 字体加大 */
         .winner-item.selected { transform: scale(1.15); }
-        .winner-item.selected .winner-circle { border-color: #ffd700; box-shadow: 0 0 20px rgba(255,215,0,0.6); }
+        .winner-item.selected .winner-circle { border-color: #ffd700; box-shadow: 0 0 30px rgba(255,215,0,0.8); }
         .winner-item.selected span { color: #ffd700; }
+        
         .btn-back-home {
-            width: auto; min-width: 200px; padding: 10px 30px;
-            background: rgba(74, 144, 226, 0.3); border: 1px solid #4a90e2; color: #aaccff;
-            font-weight: bold; font-size: 16px; border-radius: 25px; cursor: pointer;
+            width: auto; min-width: 300px; padding: 15px 50px;
+            background: rgba(74, 144, 226, 0.3); border: 2px solid #4a90e2; color: #aaccff;
+            font-weight: bold; font-size: 22px; border-radius: 40px; cursor: pointer;
         }
 
-        /* 🌟 修复：底部控制栏位置 */
+        /* Bottom Control Bar - 悬浮固定 */
         .game-bottom-bar {
-            position: absolute; bottom: 0; left: 0; width: 100%;
-            padding: 10px 30px; 
-            /* 适配 iPad 底部，增加 padding 防止被浏览器栏遮挡 */
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            padding: 20px 40px; 
             padding-bottom: max(30px, env(safe-area-inset-bottom));
             display: flex; justify-content: space-between; z-index: 100;
             background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
         }
-        .control-icon { width: 40px; height: 40px; cursor: pointer; opacity: 0.8; }
+        .control-icon { width: 60px; height: 60px; cursor: pointer; opacity: 0.8; } /* 图标加大 */
         .control-icon:active { transform: scale(0.9); opacity: 1; }
 
         /* Modal */
@@ -210,12 +258,14 @@
         }
         .modal-mask.show { display: flex; }
         .modal-content {
-            width: 80%; max-width: 300px; background: rgba(37, 24, 56, 0.95);
-            border: 2px solid #FFD700; border-radius: 12px; padding: 20px; text-align: center;
+            width: 70%; max-width: 400px; background: rgba(37, 24, 56, 0.95);
+            border: 3px solid #FFD700; border-radius: 16px; padding: 30px; text-align: center;
         }
+        .modal-title { font-size: 28px; font-weight: bold; color: #fff; margin-bottom: 20px; }
+        .modal-body { font-size: 20px; color: #ddd; margin-bottom: 30px; }
         .modal-footer { display: flex; justify-content: space-around; margin-top: 20px; }
-        .modal-btn { padding: 8px 20px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; }
-        .modal-btn.cancel { background: transparent; border: 1px solid #666; color: #aaa; }
+        .modal-btn { padding: 12px 30px; border-radius: 10px; font-weight: bold; border: none; cursor: pointer; font-size: 18px; }
+        .modal-btn.cancel { background: transparent; border: 2px solid #666; color: #aaa; }
         .modal-btn.confirm { background: #FFD700; color: #3e2723; }
 
         /* Hide Scrollbar */
@@ -226,7 +276,7 @@
 <!-- 📱 APP ROOT -->
 <div id="app-root">
 
-    <!-- Layer 0: Background (修复: 使用相对路径) -->
+    <!-- Layer 0: Background -->
     <img id="bg-image" src="./images/bg.png" alt="background">
     <div id="global-mask"></div>
 
@@ -236,9 +286,7 @@
             <div class="home-title">狼人真言</div>
         </div>
         <div class="middle-area">
-            <div class="avatar-grid" id="setup-grid">
-                <!-- JS will inject avatars here -->
-            </div>
+            <div class="avatar-grid" id="setup-grid"></div>
         </div>
         <div class="bottom-area">
             <div class="info-text" id="config-summary">配置加载中...</div>
@@ -292,12 +340,9 @@
     <!-- Panel 2: MAYOR PICK -->
     <div id="panel-mayor-pick" class="panel">
         <div class="panel-container" style="justify-content: flex-start; padding-top: 15vh;">
-            <div class="panel-title" style="font-size: 24px;">请村长选择词语</div>
-            <div class="word-card-list" id="word-list">
-                <!-- JS injected -->
-            </div>
+            <div class="panel-title" style="font-size: 32px;">请村长选择词语</div>
+            <div class="word-card-list" id="word-list"></div>
         </div>
-        <!-- Bottom Bar injected dynamically or shared -->
     </div>
 
     <!-- Panel 3: NIGHT -->
@@ -324,7 +369,7 @@
     <!-- Panel 5: RESULT -->
     <div id="panel-result" class="panel">
         <div class="panel-container" style="justify-content: space-between; padding-top: 10vh; padding-bottom: 10vh;">
-            <div class="panel-title" style="font-size: 28px;">请选择胜利方</div>
+            <div class="panel-title" style="font-size: 36px;">请选择胜利方</div>
             <div class="result-avatars">
                 <div class="winner-item" onclick="app.selectWinner('wolf', this)">
                     <div class="winner-circle" style="background:#e04f5f"><img src="./images/wolf.png"></div><span>狼人</span>
@@ -378,6 +423,19 @@ const ROLE_CONFIG = {
     10: { seer: 1, wolf: 2, villager: 7 }
 };
 
+const FIXED_SLOTS_DEF = [
+  { type: 'seer', name: '先知', img: './images/seer.png' },
+  { type: 'wolf', name: '狼人', img: './images/wolf.png' },
+  { type: 'wolf', name: '狼人', img: './images/wolf.png' },
+  { type: 'villager', name: '村民', img: './images/villager.png' },
+  { type: 'villager', name: '村民', img: './images/villager.png' },
+  { type: 'villager', name: '村民', img: './images/villager.png' },
+  { type: 'villager', name: '村民', img: './images/villager.png' },
+  { type: 'villager', name: '村民', img: './images/villager.png' },
+  { type: 'villager', name: '村民', img: './images/villager.png' },
+  { type: 'villager', name: '村民', img: './images/villager.png' }
+];
+
 const DIFFICULTY_OPTS = [
     { label: "简单", key: "SIMPLE" }, { label: "普通", key: "NORMAL" },
     { label: "中等", key: "MEDIUM" }, { label: "困难", key: "HARD" }, { label: "地狱", key: "HELL" }
@@ -397,7 +455,7 @@ const AudioController = {
     play: function(name) {
         if (!this.ctx[name]) return;
         
-        // 🌟 修复: 打断机制
+        // Interrupt logic
         if (this.currentAudio && this.currentAudio !== this.ctx[name] && name !== 'sfx_tick_tock') {
             this.currentAudio.pause();
             this.currentAudio.currentTime = 0;
@@ -474,30 +532,22 @@ const App = {
         document.getElementById('timer-text').innerText = '时间: ' + TIMER_OPTS[this.state.timerIdx] + '分';
         
         const config = ROLE_CONFIG[this.state.playerCount];
-        const fixedSlots = [
-          { type: 'seer', name: '先知', img: './images/seer.png' },
-          { type: 'wolf', name: '狼人', img: './images/wolf.png' },
-          { type: 'wolf', name: '狼人', img: './images/wolf.png' },
-          { type: 'villager', name: '村民', img: './images/villager.png' },
-          { type: 'villager', name: '村民', img: './images/villager.png' },
-          { type: 'villager', name: '村民', img: './images/villager.png' },
-          { type: 'villager', name: '村民', img: './images/villager.png' },
-          { type: 'villager', name: '村民', img: './images/villager.png' },
-          { type: 'villager', name: '村民', img: './images/villager.png' },
-          { type: 'villager', name: '村民', img: './images/villager.png' }
-        ];
         
         let currentCounts = { seer: 0, wolf: 0, villager: 0 };
         let html = '';
         
-        fixedSlots.forEach((slot) => {
-            const maxAllowed = config[slot.type] || 0;
+        FIXED_SLOTS_DEF.forEach((slot) => {
+            const roleType = slot.type;
+            const maxAllowed = config[roleType] || 0;
+            
             let isActive = false;
-            if (currentCounts[slot.type] < maxAllowed) {
+            if (currentCounts[roleType] < maxAllowed) {
                 isActive = true;
-                currentCounts[slot.type]++;
+                currentCounts[roleType]++;
             }
+            
             const activeClass = isActive ? 'active' : 'inactive';
+            
             html += `<div class="role-item ${activeClass}">
                 <div class="avatar-circle"><img class="avatar-icon" src="${slot.img}"></div>
                 <div class="role-name">${slot.name}</div>
@@ -572,7 +622,7 @@ const App = {
             document.getElementById('night-status-text').style.display = 'none';
             document.getElementById('night-word-container').style.display = 'block';
             document.querySelectorAll('.target-word').forEach(e => {
-                // 🌟 修复1：先移除过渡效果，瞬间显示
+                // Fix: reset transition and opacity immediately
                 e.style.transition = 'none';
                 e.style.opacity = '1';
                 e.innerText = this.state.targetWord;
@@ -581,9 +631,8 @@ const App = {
         
         const fadeOut = () => {
             document.querySelectorAll('.target-word').forEach(e => {
-                // 恢复过渡并淡出
                 e.style.transition = 'opacity 2s ease-out';
-                // 强制回流
+                // Trigger reflow
                 void e.offsetWidth;
                 e.style.opacity = '0';
             });
@@ -593,14 +642,13 @@ const App = {
 
         try {
             setStatus("先知请睁眼"); AudioController.play('seer_open'); await wait(2500);
-            setWord(); await wait(7000); 
+            setWord(); await wait(5000); 
             fadeOut(); await wait(2000);
             
             setStatus("先知请闭眼"); AudioController.play('seer_close'); await wait(3000);
 
             setStatus("狼人请睁眼"); AudioController.play('wolf_open'); await wait(2500);
-            // 再次调用 setWord 会重置 opacity 为 1
-            setWord(); await wait(7000);
+            setWord(); await wait(5000);
             fadeOut(); await wait(2000);
 
             setStatus("狼人请闭眼"); AudioController.play('wolf_close'); await wait(3000);
@@ -626,7 +674,7 @@ const App = {
                 this.updateTimerDisplay();
                 if(this.state.gameDuration <= 0) {
                     clearInterval(this.state.timer);
-                    this.switchPanel('panel-result');
+                    this.onGameOver();
                 }
             }
         }, 1000);
@@ -643,6 +691,12 @@ const App = {
         AudioController.stop('sfx_tick_tock');
         AudioController.play('voice_assassinate');
         setTimeout(() => this.switchPanel('panel-result'), 2000);
+    },
+
+    onGameOver: function() {
+        clearInterval(this.state.timer);
+        AudioController.stop('sfx_tick_tock');
+        this.switchPanel('panel-result');
     },
 
     selectWinner: function(type, el) {
@@ -676,7 +730,11 @@ const App = {
             if(type === 'PAUSE') {
                 this.state.paused = false;
                 AudioController.play('game_resume');
-                // Resume tick if in early game? simplified to just resume.
+                // Resume tick if in early game
+                if(this.state.gameDuration > 0) {
+                     // Optionally restart tick sound or just let logic handle
+                     // For simplicity we just resume logic
+                }
             } else if (type === 'EXIT') {
                 this.resetGame();
             }
