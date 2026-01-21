@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>狼人真言 (iPad Pro版)</title>
     <style>
-        /* ================= 全局重置 ================= */
+        /* ================= Global Reset ================= */
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
         body {
             margin: 0; padding: 0;
@@ -38,7 +38,7 @@
             background: rgba(0, 0, 0, 0.6); z-index: 2;
         }
 
-        /* ================= 面板布局 ================= */
+        /* ================= Panels ================= */
         .panel {
             display: none; width: 100%; height: 100%;
             flex-direction: column;
@@ -172,9 +172,9 @@
             font-weight: bold; font-size: 26px; border-radius: 50px; cursor: pointer;
         }
 
-        /* Bottom Controls */
+        /* Bottom Control Bar */
         .game-bottom-bar {
-            position: fixed; bottom: 0; left: 0; width: 100%;
+            position: absolute; bottom: 0; left: 0; width: 100%;
             padding: 20px 60px; padding-bottom: max(40px, env(safe-area-inset-bottom));
             display: flex; justify-content: space-between; z-index: 100;
             background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
@@ -199,17 +199,28 @@
         .modal-btn.cancel { background: transparent; border: 2px solid #666; color: #aaa; }
         .modal-btn.confirm { background: #FFD700; color: #3e2723; }
 
+        /* Hide Scrollbar */
         ::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body>
+<!-- 📱 APP ROOT -->
 <div id="app-root">
+
+    <!-- Layer 0: Background (修复: 使用相对路径) -->
     <img id="bg-image" src="images/bg.png" alt="background">
     <div id="global-mask"></div>
 
+    <!-- Panel 0: SETUP -->
     <div id="panel-setup" class="panel active">
-        <div class="top-area"><div class="home-title"></div></div>
-        <div class="middle-area"><div class="avatar-grid" id="setup-grid"></div></div>
+        <div class="top-area">
+            <div class="home-title"></div>
+        </div>
+        <div class="middle-area">
+            <div class="avatar-grid" id="setup-grid">
+                <!-- JS will inject avatars here -->
+            </div>
+        </div>
         <div class="bottom-area">
             <div class="info-text" id="config-summary">配置加载中...</div>
             <div class="settings-row">
@@ -218,34 +229,59 @@
                     <div class="counter-num" id="player-count">4人</div>
                     <div class="counter-btn" onclick="app.changeCount(1)">+</div>
                 </div>
-                <div class="setting-capsule" onclick="app.toggleDifficulty()"><span id="difficulty-text">词汇: 普通</span></div>
-                <div class="setting-capsule" onclick="app.toggleTimer()"><span id="timer-text">时间: 5分</span></div>
+                <div class="setting-capsule" onclick="app.toggleDifficulty()">
+                    <span id="difficulty-text">词汇: 普通</span>
+                </div>
+                <div class="setting-capsule" onclick="app.toggleTimer()">
+                    <span id="timer-text">时间: 5分</span>
+                </div>
             </div>
-            <button class="btn-main" onclick="app.startGame()">开始游戏</button>
+            <div style="display: flex; justify-content: center;">
+                <button class="btn-main" onclick="app.startGame()">开始游戏</button>
+            </div>
         </div>
     </div>
 
-    <div id="panel-buffer" class="panel"><div class="panel-container"><div class="night-status">天黑请闭眼...</div></div></div>
-    
-    <div id="panel-mayor-id" class="panel">
+    <!-- Panel 0.5: SAFETY BUFFER -->
+    <div id="panel-buffer" class="panel">
         <div class="panel-container">
+            <div class="night-status">天黑请闭眼...</div>
+        </div>
+    </div>
+
+    <!-- Panel 1: MAYOR ID -->
+    <div id="panel-mayor-id" class="panel">
+        <div class="panel-container" style="justify-content: center;">
             <div class="panel-title">请村长选择你的身份</div>
-            <div class="mayor-avatar-large"><img src="images/cz.png"></div>
+            <div class="mayor-avatar-large">
+                <img src="./images/cz.png">
+            </div>
             <div class="identity-selector">
-                <div class="id-btn" onclick="app.selectIdentity('seer', this)"><img src="images/seer.png"><span>先知</span></div>
-                <div class="id-btn" onclick="app.selectIdentity('wolf', this)"><img src="images/wolf.png"><span>狼人</span></div>
-                <div class="id-btn" onclick="app.selectIdentity('villager', this)"><img src="images/villager.png"><span>村民</span></div>
+                <div class="id-btn" onclick="app.selectIdentity('seer', this)">
+                    <img src="./images/seer.png"><span>先知</span>
+                </div>
+                <div class="id-btn" onclick="app.selectIdentity('wolf', this)">
+                    <img src="./images/wolf.png"><span>狼人</span>
+                </div>
+                <div class="id-btn" onclick="app.selectIdentity('villager', this)">
+                    <img src="./images/villager.png"><span>村民</span>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- Panel 2: MAYOR PICK -->
     <div id="panel-mayor-pick" class="panel">
-        <div class="panel-container" style="justify-content: flex-start; padding-top: 10vh;">
-            <div class="panel-title">请村长选择词语</div>
-            <div class="word-card-list" id="word-list"></div>
+        <div class="panel-container" style="justify-content: flex-start; padding-top: 15vh;">
+            <div class="panel-title" style="font-size: 32px;">请村长选择词语</div>
+            <div class="word-card-list" id="word-list">
+                <!-- JS injected -->
+            </div>
         </div>
+        <!-- Bottom Bar injected dynamically or shared -->
     </div>
 
+    <!-- Panel 3: NIGHT -->
     <div id="panel-night" class="panel">
         <div class="panel-container">
             <div class="night-status" id="night-status-text"></div>
@@ -256,44 +292,63 @@
         </div>
     </div>
 
+    <!-- Panel 4: GAME -->
     <div id="panel-game" class="panel">
-        <div class="panel-container">
-            <div class="timer-display" id="timer-display">05:00</div>
-            <button class="btn-word-guessed" onclick="app.onWordGuessed()">词语已猜出</button>
-        </div>
-    </div>
-
-    <div id="panel-result" class="panel">
-        <div class="panel-container">
-            <div class="panel-title">请选择胜利方</div>
-            <div class="result-avatars">
-                <div class="winner-item" onclick="app.selectWinner('wolf', this)"><div class="winner-circle" style="background:#e04f5f"><img src="images/wolf.png"></div><span>狼人</span></div>
-                <div class="winner-item" onclick="app.selectWinner('seer', this)"><div class="winner-circle" style="background:#9b59b6"><img src="images/seer.png"></div><span>先知</span></div>
-                <div class="winner-item" onclick="app.selectWinner('villager', this)"><div class="winner-circle" style="background:#f0c040"><img src="images/villager.png"></div><span>村民</span></div>
+        <div class="panel-container" style="justify-content: space-between; padding-bottom: 15vh;">
+            <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                <div class="timer-display" id="timer-display">05:00</div>
+                <button class="btn-word-guessed" onclick="app.onWordGuessed()">词语已猜出</button>
             </div>
-            <button class="btn-back-home" style="margin-top: 50px;" onclick="app.resetGame()">返回首页</button>
         </div>
     </div>
 
+    <!-- Panel 5: RESULT -->
+    <div id="panel-result" class="panel">
+        <div class="panel-container" style="justify-content: space-between; padding-top: 10vh; padding-bottom: 10vh;">
+            <div class="panel-title" style="font-size: 36px;">请选择胜利方</div>
+            <div class="result-avatars">
+                <div class="winner-item" onclick="app.selectWinner('wolf', this)">
+                    <div class="winner-circle" style="background:#e04f5f"><img src="images/wolf.png"></div><span>狼人</span>
+                </div>
+                <div class="winner-item" onclick="app.selectWinner('seer', this)">
+                    <div class="winner-circle" style="background:#9b59b6"><img src="images/seer.png"></div><span>先知</span>
+                </div>
+                <div class="winner-item" onclick="app.selectWinner('villager', this)">
+                    <div class="winner-circle" style="background:#f0c040"><img src="images/villager.png"></div><span>村民</span>
+                </div>
+            </div>
+            <button class="btn-back-home" onclick="app.resetGame()">返回首页</button>
+        </div>
+    </div>
+
+    <!-- Shared Bottom Control -->
     <div id="game-bottom-bar" class="game-bottom-bar" style="display: none;">
         <img class="control-icon" src="images/icon_pause.png" onclick="app.pauseGame()">
         <img class="control-icon" src="images/icon_stop.png" onclick="app.exitGame()">
     </div>
 
+    <!-- Modal -->
     <div id="modal-mask" class="modal-mask">
         <div class="modal-content">
-            <div class="modal-title" id="modal-title"></div>
-            <div class="modal-body" id="modal-body"></div>
+            <div class="modal-title" id="modal-title">标题</div>
+            <div class="modal-body" id="modal-body">内容</div>
             <div class="modal-footer">
                 <button class="modal-btn cancel" onclick="app.closeModal()">取消</button>
                 <button class="modal-btn confirm" id="modal-confirm-btn">确定</button>
             </div>
         </div>
     </div>
+
 </div>
 
+<!-- 引入外部词库 -->
 <script src="words.js"></script>
+
 <script>
+// -----------------------------------------------------------
+// 以下是游戏逻辑代码
+// -----------------------------------------------------------
+
 const ROLE_CONFIG = {
     4: { seer: 1, wolf: 1, villager: 2 },
     5: { seer: 1, wolf: 1, villager: 3 },
@@ -321,28 +376,67 @@ const DIFFICULTY_OPTS = [
 ];
 const TIMER_OPTS = [4, 5, 6, 7, 8];
 
+// 🌟 音频控制：包含预热逻辑 (Warm Up) 解决 iOS 不播放问题
 const AudioController = {
     ctx: {},
     currentAudio: null,
+    tickFadeInterval: null,
+    tickStopTimeout: null,
+    isWarmedUp: false,
+
     init: function() {
         const files = ['click', 'paper', 'pop', 'night_start', 'mayor_identity', 'mayor_pick', 'seer_open', 'seer_close', 'wolf_open', 'wolf_close', 'day_break', 'sfx_tick_tock', 'voice_assassinate', 'sfx_win_werewolf', 'sfx_win_seer', 'sfx_win_villager', 'game_resume'];
         files.forEach(f => {
             this.ctx[f] = new Audio(`audio/${f}.mp3`);
+            // 预加载，但不自动播放
+            this.ctx[f].preload = 'auto';
             if(f === 'sfx_tick_tock') this.ctx[f].loop = true;
         });
     },
+
+    // 🌟 核心：在用户点击“开始游戏”时，把所有音频快速静音播放一遍，获得iOS播放权限
+    warmUp: function() {
+        if (this.isWarmedUp) return;
+        console.log("Warming up audio for iOS...");
+        Object.keys(this.ctx).forEach(key => {
+            const audio = this.ctx[key];
+            audio.volume = 0; // 静音
+            const p = audio.play();
+            if (p !== undefined) {
+                p.then(() => {
+                    audio.pause();
+                    audio.currentTime = 0;
+                    audio.volume = 1; // 恢复音量
+                }).catch(e => console.log("Warm up skipped for", key));
+            }
+        });
+        this.isWarmedUp = true;
+    },
+
     play: function(name) {
         if (!this.ctx[name]) return;
-        // 打断非背景音乐的其他音频
+        // 打断非滴答声的其他音频
         if (this.currentAudio && this.currentAudio !== this.ctx[name] && name !== 'sfx_tick_tock') {
             this.currentAudio.pause();
             this.currentAudio.currentTime = 0;
         }
+        // 如果是滴答声，单独处理
+        if (name === 'sfx_tick_tock') {
+            this.playTickFade();
+            return;
+        }
+
         this.ctx[name].currentTime = 0;
-        this.ctx[name].volume = 1; // 重置音量
-        this.ctx[name].play().catch(e => console.log("Audio needed interaction:", e));
+        this.ctx[name].volume = 1;
         
-        if (name !== 'sfx_tick_tock') this.currentAudio = this.ctx[name];
+        // 尝试播放，捕获错误
+        const playPromise = this.ctx[name].play();
+        if (playPromise !== undefined) {
+            playPromise.catch(e => console.log(`Audio [${name}] play failed:`, e));
+        }
+        
+        this.currentAudio = this.ctx[name];
+        if (navigator.vibrate) navigator.vibrate(50);
     },
     stop: function(name) {
         if (!this.ctx[name]) return;
@@ -355,12 +449,12 @@ const AudioController = {
         if(!audio) return;
         
         // 停止之前的淡出
-        if(this.tickFadeInterval) clearInterval(this.tickFadeInterval);
-        if(this.tickStopTimeout) clearTimeout(this.tickStopTimeout);
+        this.stopTick();
 
         audio.volume = 1;
         audio.currentTime = 0;
-        audio.play().catch(e => console.log(e));
+        const p = audio.play();
+        if (p !== undefined) p.catch(e => console.log("Tick sound fail:", e));
 
         // 5秒后开始淡出
         this.tickStopTimeout = setTimeout(() => {
@@ -380,12 +474,15 @@ const AudioController = {
         const audio = this.ctx['sfx_tick_tock'];
         if(this.tickFadeInterval) clearInterval(this.tickFadeInterval);
         if(this.tickStopTimeout) clearTimeout(this.tickStopTimeout);
-        if(audio) audio.pause();
+        if(audio) {
+            audio.pause();
+            audio.currentTime = 0;
+        }
     }
 };
 
 const App = {
-    state: { playerCount: 4, difficultyIdx: 1, timerIdx: 1, gameDuration: 300, candidates: [], targetWord: '', timer: null, paused: false },
+    state: { playerCount: 4, difficultyIdx: 1, timerIdx: 1, gameDuration: 300, candidates: [], targetWord: '', timer: null, paused: false, currentPhase: 'SETUP' },
     init: function() { AudioController.init(); this.renderSetup(); },
     changeCount: function(delta) {
         let n = this.state.playerCount + delta;
@@ -413,14 +510,20 @@ const App = {
         document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
         document.getElementById(panelId).classList.add('active');
         document.getElementById('game-bottom-bar').style.display = (panelId === 'panel-mayor-pick' || panelId === 'panel-game') ? 'flex' : 'none';
+        this.state.currentPhase = panelId === 'panel-game' ? 'GAME' : panelId.replace('panel-', '').toUpperCase();
     },
     startGame: function() {
+        // 🌟 关键：用户点击开始时，预热所有音频
+        AudioController.warmUp();
+
         const key = DIFFICULTY_OPTS[this.state.difficultyIdx].key;
         if(!window.WORD_BANK) { alert("词库加载失败"); return; }
         const pool = window.WORD_BANK[key] || window.WORD_BANK['NORMAL'];
         this.state.candidates = [...pool].sort(() => 0.5 - Math.random()).slice(0, 6);
         this.state.gameDuration = TIMER_OPTS[this.state.timerIdx] * 60;
-        this.switchPanel('panel-buffer'); AudioController.play('night_start');
+        
+        this.switchPanel('panel-buffer'); 
+        AudioController.play('night_start');
         setTimeout(() => { this.switchPanel('panel-mayor-id'); AudioController.play('mayor_identity'); }, 5000);
     },
     selectIdentity: function(type, el) {
@@ -450,7 +553,6 @@ const App = {
         };
         const fadeOut = () => { 
             document.querySelectorAll('.target-word').forEach(e => { 
-                // 强制重绘
                 void e.offsetWidth;
                 e.style.transition='opacity 2s ease-out'; 
                 e.style.opacity='0'; 
@@ -462,7 +564,7 @@ const App = {
         setWord(); await wait(5000); fadeOut(); await wait(2000);
         setStatus("先知请闭眼"); AudioController.play('seer_close'); await wait(3000);
         setStatus("狼人请睁眼"); AudioController.play('wolf_open'); await wait(2500);
-        setWord(); document.querySelectorAll('.target-word').forEach(e => e.style.opacity = 1); // Reset opacity for next view
+        setWord(); document.querySelectorAll('.target-word').forEach(e => e.style.opacity = 1);
         await wait(5000); fadeOut(); await wait(2000);
         setStatus("狼人请闭眼"); AudioController.play('wolf_close'); await wait(3000);
         setStatus("天亮了！"); AudioController.play('day_break'); await wait(2000);
@@ -472,7 +574,6 @@ const App = {
         this.switchPanel('panel-game'); 
         this.state.paused = false; 
         this.updateTimerDisplay();
-        // 🌟 修复：调用滴答声淡出
         AudioController.playTickFade(); 
 
         if (this.state.timer) clearInterval(this.state.timer);
@@ -483,6 +584,7 @@ const App = {
                 if(this.state.gameDuration <= 0) { 
                     clearInterval(this.state.timer); 
                     this.switchPanel('panel-result'); 
+                    AudioController.stopTick();
                 } 
             }
         }, 1000);
@@ -511,7 +613,7 @@ const App = {
     },
     pauseGame: function() { 
         this.state.paused = true; 
-        AudioController.stopTick(); // 暂停时停止滴答
+        AudioController.stopTick(); 
         this.showModal('游戏已暂停', '点击确定继续', 'PAUSE'); 
     },
     exitGame: function() { this.showModal('结束游戏', '确定返回首页？', 'EXIT'); },
@@ -523,7 +625,10 @@ const App = {
             if(type==='PAUSE') { 
                 this.state.paused = false; 
                 AudioController.play('game_resume'); 
-                // 恢复游戏时不重置滴答声，或者根据需求重新播放
+                // 恢复游戏时重新播放滴答声（如果还没结束）
+                 if(this.state.currentPhase === 'GAME') {
+                     AudioController.playTickFade();
+                 }
             }
             else { this.resetGame(); }
         };
