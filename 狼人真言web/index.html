@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>狼人真言 (Web版)</title>
+    <style>
+        /* ================= Global Reset ================= */
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+        body {
+            margin: 0; padding: 0;
+            width: 100vw; height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #fff;
+            overflow: hidden;
+            display: flex; flex-direction: column;
+            background-color: #000;
+            align-items: center; justify-content: center;
+        }
+
+        /* 📱 手机容器模拟 */
+        #app-root {
+            width: 100%; height: 100%;
+            position: relative;
+            background-color: #1a1b26;
+            overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+
+        /* 🚫 [iPad适配修改] 
+           注释掉下面这段代码。之前是为了在电脑上模拟手机大小。
+           在iPad上我们需要它全屏显示，否则会变成一个小方块。
+           内部元素（如按钮、网格）自带了 max-width，会自动居中，放心使用。
+        */
+        /* @media (min-width: 768px) {
+            #app-root {
+                max-width: 450px; max-height: 900px;
+                border-radius: 20px;
+                box-shadow: 0 0 50px rgba(255, 255, 255, 0.1);
+                border: 4px solid #333;
+            }
+        } 
+        */
+
+        /* 背景图 (修复：使用本地路径) */
+        #bg-image {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover; z-index: -2;
+            opacity: 0.8; /* 稍微暗一点，保证文字清晰 */
+        }
+        #global-mask {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6); z-index: -1;
+        }
+
+        /* ================= Panels ================= */
+        .panel {
+            display: none; width: 100%; height: 100%;
+            flex-direction: column;
+            animation: fadeIn 0.5s ease-out;
+            position: relative;
+        }
+        .panel.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Setup Layout */
+        .top-area { height: 15vh; display: flex; align-items: flex-end; justify-content: center; flex-shrink: 0; }
+        .home-title { font-size: 32px; font-weight: 900; color: #ffd700; text-shadow: 0 2px 5px rgba(0,0,0,0.8); letter-spacing: 2px; }
+
+        .middle-area { flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; overflow: hidden; }
+        
+        .bottom-area {
+            height: 35vh; display: flex; flex-direction: column; justify-content: flex-end;
+            padding-bottom: max(20px, env(safe-area-inset-bottom));
+            width: 90%; max-width: 600px; margin: 0 auto; flex-shrink: 0;
+        }
+
+        /* Avatar Grid */
+        .avatar-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; width: 95%; max-width: 400px; }
+        .role-item { display: flex; flex-direction: column; align-items: center; }
+        .avatar-circle {
+            width: 45px; height: 45px; border-radius: 50%; background: rgba(0,0,0,0.3);
+            display: flex; align-items: center; justify-content: center; overflow: hidden;
+            margin-bottom: 4px; border: 2px solid transparent;
+        }
+        .avatar-icon { width: 100%; height: 100%; object-fit: cover; }
+        .role-name { font-size: 10px; color: #ccc; }
+        .role-item.active .avatar-circle { background: #4a506b; border-color: #ffd700; box-shadow: 0 0 8px rgba(255, 215, 0, 0.4); }
+        .role-item.active .role-name { color: #fff; font-weight: bold; }
+        .role-item.inactive { opacity: 0.3; filter: grayscale(100%); transform: scale(0.9); }
+
+        /* Settings UI */
+        .info-text { text-align: center; margin-bottom: 10px; font-size: 12px; color: rgba(255,255,255,0.6); background: rgba(0,0,0,0.2); padding: 2px 8px; border-radius: 10px; align-self: center; }
+        .settings-row { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 15px; }
+        .setting-capsule {
+            height: 40px; background: rgba(60, 64, 85, 0.9); border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; color: #eee; border: 1px solid rgba(255,255,255,0.1);
+            flex: 1; cursor: pointer;
+        }
+        .player-counter { justify-content: space-between; padding: 0; background: rgba(44, 46, 62, 0.9); }
+        .counter-btn { width: 40px; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #ffd700; font-weight: bold; }
+        .counter-num { font-weight: bold; }
+
+        .btn-main {
+            width: auto; min-width: 200px; padding: 12px 40px;
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: #3e2723; border-radius: 30px; font-weight: 900; font-size: 18px;
+            border: none; box-shadow: 0 4px 10px rgba(255, 165, 0, 0.4);
+            align-self: center; text-align: center; animation: pulse 2s infinite; cursor: pointer;
+        }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
+
+        /* Common Panel */
+        .panel-container { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; padding: 20px; justify-content: center; }
+        .panel-title { font-size: 24px; font-weight: bold; color: #ffd700; margin-bottom: 30px; text-shadow: 0 1px 2px rgba(0,0,0,0.8); text-align: center; }
+        
+        /* Mayor */
+        .mayor-avatar-large img { width: 120px; height: 120px; border-radius: 50%; border: 3px solid #ffd700; margin-bottom: 40px; background: rgba(0,0,0,0.3); }
+        .identity-selector { display: flex; width: 100%; justify-content: space-around; max-width: 400px; }
+        .id-btn { display: flex; flex-direction: column; align-items: center; opacity: 0.8; transition: 0.3s; cursor: pointer; }
+        .id-btn.selected { opacity: 1; transform: scale(1.2); }
+        .id-btn img { width: 70px; height: 70px; border-radius: 50%; margin-bottom: 10px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); }
+        .id-btn.selected img { border-color: #ffd700; box-shadow: 0 0 15px #ffd700; }
+
+        /* Words (2 cols) */
+        .word-card-list {
+            width: 100%; max-width: 500px;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+            padding-bottom: 80px; overflow-y: auto;
+        }
+        .word-card {
+            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.8);
+            padding: 15px 10px; border-radius: 12px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            min-height: 80px; cursor: pointer; transition: 0.2s;
+        }
+        .card-selected { background: #FFD700 !important; border-color: #FFD700 !important; transform: scale(1.05); box-shadow: 0 5px 15px rgba(255, 215, 0, 0.4); }
+        .card-selected .card-text, .card-selected .card-category { color: #3e2723; text-shadow: none; }
+        .card-text { font-size: 18px; font-weight: bold; color: #fff; text-align: center; margin-bottom: 5px; }
+        .card-category { font-size: 12px; color: #aaa; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; }
+
+        /* Night Mode (Fixed) */
+        .night-status {
+            font-size: 40px; font-weight: 900; color: #ffd700; text-align: center;
+            letter-spacing: 3px; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+            animation: breathe 3s infinite;
+        }
+        @keyframes breathe { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+        
+        .tabletop-view { width: 100%; height: 100%; position: absolute; top: 0; left: 0; pointer-events: none; }
+        .night-word-box {
+            position: absolute; top: 50%;
+            display: flex; align-items: center; justify-content: center;
+            white-space: nowrap;
+        }
+        .target-word {
+            font-size: 60px; font-weight: 900; color: #FFD700; letter-spacing: 5px;
+            text-shadow: 2px 2px 10px rgba(0,0,0,1); line-height: 1.2;
+            transition: opacity 2s ease-out;
+        }
+        .normal-view { left: 10px; transform: translateY(-50%) rotate(-90deg); transform-origin: center; }
+        .rotated-view { right: 10px; transform: translateY(-50%) rotate(90deg); transform-origin: center; }
+
+        /* Game Timer */
+        .timer-display { font-size: 80px; font-weight: bold; color: #fff; font-family: monospace; text-shadow: 0 0 10px rgba(0,0,0,0.5); margin-bottom: 20px; }
+        .btn-word-guessed {
+            width: auto; min-width: 280px; padding: 10px 40px;
+            background: #f0c040; color: #3e2723; font-weight: bold; font-size: 18px;
+            border-radius: 25px; border: none; cursor: pointer; white-space: nowrap;
+        }
+
+        /* Result */
+        .result-avatars { display: flex; width: 100%; justify-content: space-around; max-width: 500px; flex: 1; align-items: center; }
+        .winner-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: 0.2s; }
+        .winner-circle {
+            width: 80px; height: 80px; border-radius: 50%; margin-bottom: 10px;
+            border: 3px solid rgba(255,255,255,0.3); overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .winner-circle img { width: 100%; height: 100%; }
+        .winner-item.selected { transform: scale(1.15); }
+        .winner-item.selected .winner-circle { border-color: #ffd700; box-shadow: 0 0 20px rgba(255,215,0,0.6); }
+        .winner-item.selected span { color: #ffd700; }
+        .btn-back-home {
+            width: auto; min-width: 200px; padding: 10px 30px;
+            background: rgba(74, 144, 226, 0.3); border: 1px solid #4a90e2; color: #aaccff;
+            font-weight: bold; font-size: 16px; border-radius: 25px; cursor: pointer;
+        }
+
+        /* Bottom Control Bar */
+        .game-bottom-bar {
+            position: absolute; bottom: 0; left: 0; width: 100%;
+            padding: 10px 30px; padding-bottom: max(10px, env(safe-area-inset-bottom));
+            display: flex; justify-content: space-between; z-index: 100;
+            background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+        }
+        .control-icon { width: 40px; height: 40px; cursor: pointer; opacity: 0.8; }
+        .control-icon:active { transform: scale(0.9); opacity: 1; }
+
+        /* Modal */
+        .modal-mask {
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 999; align-items: center; justify-content: center;
+        }
+        .modal-mask.show { display: flex; }
+        .modal-content {
+            width: 80%; max-width: 300px; background: rgba(37, 24, 56, 0.95);
+            border: 2px solid #FFD700; border-radius: 12px; padding: 20px; text-align: center;
+        }
+        .modal-footer { display: flex; justify-content: space-around; margin-top: 20px; }
+        .modal-btn { padding: 8px 20px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; }
+        .modal-btn.cancel { background: transparent; border: 1px solid #666; color: #aaa; }
+        .modal-btn.confirm { background: #FFD700; color: #3e2723; }
+
+        /* Hide Scrollbar */
+        ::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body>
+<!-- 📱 APP ROOT -->
+<div id="app-root">
+
+    <!-- Layer 0: Background (修复: 使用相对路径) -->
+    <img id="bg-image" src="./images/bg.png" alt="background">
+    <div id="global-mask"></div>
+
+    <!-- Panel 0: SETUP -->
+    <div id="panel-setup" class="panel active">
+        <div class="top-area">
+            <div class="home-title">狼人真言</div>
+        </div>
+        <div class="middle-area">
+            <div class="avatar-grid" id="setup-grid">
+                <!-- JS will inject avatars here -->
+            </div>
+        </div>
+        <div class="bottom-area">
+            <div class="info-text" id="config-summary">配置加载中...</div>
+            <div class="settings-row">
+                <div class="setting-capsule player-counter">
+                    <div class="counter-btn" onclick="app.changeCount(-1)">-</div>
+                    <div class="counter-num" id="player-count">4人</div>
+                    <div class="counter-btn" onclick="app.changeCount(1)">+</div>
+                </div>
+                <div class="setting-capsule" onclick="app.toggleDifficulty()">
+                    <span id="difficulty-text">词汇: 普通</span>
+                </div>
+                <div class="setting-capsule" onclick="app.toggleTimer()">
+                    <span id="timer-text">时间: 5分</span>
+                </div>
+            </div>
+            <div style="display: flex; justify-content: center;">
+                <button class="btn-main" onclick="app.startGame()">开始游戏</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel 0.5: SAFETY BUFFER -->
+    <div id="panel-buffer" class="panel">
+        <div class="panel-container">
+            <div class="night-status">天黑请闭眼...</div>
+        </div>
+    </div>
+
+    <!-- Panel 1: MAYOR ID -->
+    <div id="panel-mayor-id" class="panel">
+        <div class="panel-container" style="justify-content: center;">
+            <div class="panel-title">请村长选择你的身份</div>
+            <div class="mayor-avatar-large">
+                <img src="./images/cz.png">
+            </div>
+            <div class="identity-selector">
+                <div class="id-btn" onclick="app.selectIdentity('seer', this)">
+                    <img src="./images/seer.png"><span>先知</span>
+                </div>
+                <div class="id-btn" onclick="app.selectIdentity('wolf', this)">
+                    <img src="./images/wolf.png"><span>狼人</span>
+                </div>
+                <div class="id-btn" onclick="app.selectIdentity('villager', this)">
+                    <img src="./images/villager.png"><span>村民</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel 2: MAYOR PICK -->
+    <div id="panel-mayor-pick" class="panel">
+        <div class="panel-container" style="justify-content: flex-start; padding-top: 15vh;">
+            <div class="panel-title" style="font-size: 24px;">请村长选择词语</div>
+            <div class="word-card-list" id="word-list">
+                <!-- JS injected -->
+            </div>
+        </div>
+        <!-- Bottom Bar injected dynamically or shared -->
+    </div>
+
+    <!-- Panel 3: NIGHT -->
+    <div id="panel-night" class="panel">
+        <div class="panel-container">
+            <div class="night-status" id="night-status-text"></div>
+            <div class="tabletop-view" id="night-word-container" style="display: none;">
+                <div class="night-word-box normal-view"><span class="target-word"></span></div>
+                <div class="night-word-box rotated-view"><span class="target-word"></span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel 4: GAME -->
+    <div id="panel-game" class="panel">
+        <div class="panel-container" style="justify-content: space-between; padding-bottom: 15vh;">
+            <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                <div class="timer-display" id="timer-display">05:00</div>
+                <button class="btn-word-guessed" onclick="app.onWordGuessed()">词语已猜出</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel 5: RESULT -->
+    <div id="panel-result" class="panel">
+        <div class="panel-container" style="justify-content: space-between; padding-top: 10vh; padding-bottom: 10vh;">
+            <div class="panel-title" style="font-size: 28px;">请选择胜利方</div>
+            <div class="result-avatars">
+                <div class="winner-item" onclick="app.selectWinner('wolf', this)">
+                    <div class="winner-circle" style="background:#e04f5f"><img src="./images/wolf.png"></div><span>狼人</span>
+                </div>
+                <div class="winner-item" onclick="app.selectWinner('seer', this)">
+                    <div class="winner-circle" style="background:#9b59b6"><img src="./images/seer.png"></div><span>先知</span>
+                </div>
+                <div class="winner-item" onclick="app.selectWinner('villager', this)">
+                    <div class="winner-circle" style="background:#f0c040"><img src="./images/villager.png"></div><span>村民</span>
+                </div>
+            </div>
+            <button class="btn-back-home" onclick="app.resetGame()">返回首页</button>
+        </div>
+    </div>
+
+    <!-- Shared Bottom Control -->
+    <div id="game-bottom-bar" class="game-bottom-bar" style="display: none;">
+        <img class="control-icon" src="./images/icon_pause.png" onclick="app.pauseGame()">
+        <img class="control-icon" src="./images/icon_stop.png" onclick="app.exitGame()">
+    </div>
+
+    <!-- Modal -->
+    <div id="modal-mask" class="modal-mask">
+        <div class="modal-content">
+            <div class="modal-title" id="modal-title">标题</div>
+            <div class="modal-body" id="modal-body">内容</div>
+            <div class="modal-footer">
+                <button class="modal-btn cancel" onclick="app.closeModal()">取消</button>
+                <button class="modal-btn confirm" id="modal-confirm-btn">确定</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 引入外部词库 -->
+<script src="words.js"></script>
+
+<script>
+// -----------------------------------------------------------
+// 以下是游戏逻辑代码
+// -----------------------------------------------------------
+
+const ROLE_CONFIG = {
+    4: { seer: 1, wolf: 1, villager: 2 },
+    5: { seer: 1, wolf: 1, villager: 3 },
+    6: { seer: 1, wolf: 1, villager: 4 },
+    7: { seer: 1, wolf: 2, villager: 4 },
+    8: { seer: 1, wolf: 2, villager: 5 },
+    9: { seer: 1, wolf: 2, villager: 6 },
+    10: { seer: 1, wolf: 2, villager: 7 }
+};
+
+const FIXED_SLOTS_DEF = [
+  { type: 'seer', name: '先知', img: './images/seer.png' },
+  { type: 'wolf', name: '狼人', img: './images/wolf.png' },
+  { type: 'wolf', name: '狼人', img: './images/wolf.png' },
+  { type: 'villager', name: '村民', img: './images/villager.png' },
+  { type: 'villager', name: '村民', img: './images/villager.png' },
+  { type: 'villager', name: '村民', img: './images/villager.png' },
+  { type: 'villager', name: '村民', img: './images/villager.png' },
+  { type: 'villager', name: '村民', img: './images/villager.png' },
+  { type: 'villager', name: '村民', img: './images/villager.png' },
+  { type: 'villager', name: '村民', img: './images/villager.png' }
+];
+
+const DIFFICULTY_OPTS = [
+    { label: "简单", key: "SIMPLE" }, { label: "普通", key: "NORMAL" },
+    { label: "中等", key: "MEDIUM" }, { label: "困难", key: "HARD" }, { label: "地狱", key: "HELL" }
+];
+const TIMER_OPTS = [4, 5, 6, 7, 8];
+
+const AudioController = {
+    ctx: {},
+    currentAudio: null, // Track currently playing audio for interrupt
+    init: function() {
+        const files = ['click', 'paper', 'pop', 'night_start', 'mayor_identity', 'mayor_pick', 'seer_open', 'seer_close', 'wolf_open', 'wolf_close', 'day_break', 'sfx_tick_tock', 'voice_assassinate', 'sfx_win_werewolf', 'sfx_win_seer', 'sfx_win_villager', 'game_resume'];
+        files.forEach(f => {
+            this.ctx[f] = new Audio(`./audio/${f}.mp3`);
+            if(f === 'sfx_tick_tock') this.ctx[f].loop = true;
+        });
+    },
+    play: function(name) {
+        if (!this.ctx[name]) return;
+        
+        // 🌟 修复: 打断机制
+        if (this.currentAudio && this.currentAudio !== this.ctx[name] && name !== 'sfx_tick_tock') {
+            this.currentAudio.pause();
+            this.currentAudio.currentTime = 0;
+        }
+
+        this.ctx[name].currentTime = 0;
+        this.ctx[name].volume = 1;
+        this.ctx[name].play().catch(e => console.log("Audio needed interaction:", e));
+        
+        if (name !== 'sfx_tick_tock') {
+            this.currentAudio = this.ctx[name];
+        }
+        if (navigator.vibrate) navigator.vibrate(50);
+    },
+    stop: function(name) {
+        if (!this.ctx[name]) return;
+        this.ctx[name].pause();
+        this.ctx[name].currentTime = 0;
+    },
+    fadeOutTick: function() {
+        const audio = this.ctx['sfx_tick_tock'];
+        audio.volume = 1;
+        audio.play();
+        let vol = 1;
+        let fade = setInterval(() => {
+            vol -= 0.05;
+            if (vol <= 0) {
+                vol = 0; clearInterval(fade); audio.pause();
+            }
+            audio.volume = vol;
+        }, 250);
+    }
+};
+
+const App = {
+    state: {
+        playerCount: 4,
+        difficultyIdx: 1,
+        timerIdx: 1,
+        gameDuration: 300,
+        candidates: [],
+        targetWord: '',
+        timer: null,
+        paused: false
+    },
+
+    init: function() {
+        AudioController.init();
+        this.renderSetup();
+    },
+
+    changeCount: function(delta) {
+        let n = this.state.playerCount + delta;
+        if (n >= 4 && n <= 10) {
+            this.state.playerCount = n;
+            AudioController.play('click');
+            this.renderSetup();
+        }
+    },
+    toggleDifficulty: function() {
+        this.state.difficultyIdx = (this.state.difficultyIdx + 1) % DIFFICULTY_OPTS.length;
+        AudioController.play('paper');
+        this.renderSetup();
+    },
+    toggleTimer: function() {
+        this.state.timerIdx = (this.state.timerIdx + 1) % TIMER_OPTS.length;
+        AudioController.play('pop');
+        this.renderSetup();
+    },
+
+    renderSetup: function() {
+        document.getElementById('player-count').innerText = this.state.playerCount + '人';
+        document.getElementById('difficulty-text').innerText = '词汇: ' + DIFFICULTY_OPTS[this.state.difficultyIdx].label;
+        document.getElementById('timer-text').innerText = '时间: ' + TIMER_OPTS[this.state.timerIdx] + '分';
+        
+        const config = ROLE_CONFIG[this.state.playerCount];
+        let currentCounts = { seer: 0, wolf: 0, villager: 0 };
+        let html = '';
+        
+        FIXED_SLOTS_DEF.forEach((slot) => {
+            const maxAllowed = config[slot.type] || 0;
+            let isActive = false;
+            if (currentCounts[slot.type] < maxAllowed) {
+                isActive = true;
+                currentCounts[slot.type]++;
+            }
+            const activeClass = isActive ? 'active' : 'inactive';
+            html += `<div class="role-item ${activeClass}">
+                <div class="avatar-circle"><img class="avatar-icon" src="${slot.img}"></div>
+                <div class="role-name">${slot.name}</div>
+            </div>`;
+        });
+        
+        document.getElementById('setup-grid').innerHTML = html;
+        document.getElementById('config-summary').innerText = `先知${config.seer} 狼人${config.wolf} 村民${config.villager}`;
+    },
+
+    switchPanel: function(panelId) {
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        document.getElementById(panelId).classList.add('active');
+        const bar = document.getElementById('game-bottom-bar');
+        bar.style.display = (panelId === 'panel-mayor-pick' || panelId === 'panel-game') ? 'flex' : 'none';
+    },
+
+    startGame: function() {
+        const key = DIFFICULTY_OPTS[this.state.difficultyIdx].key;
+        if(typeof WORD_BANK === 'undefined') { alert("词库未加载! 检查words.js"); return; }
+        const pool = WORD_BANK[key] || WORD_BANK['NORMAL'];
+        const shuffled = [...pool].sort(() => 0.5 - Math.random());
+        this.state.candidates = shuffled.slice(0, 6);
+        this.state.gameDuration = TIMER_OPTS[this.state.timerIdx] * 60;
+        
+        this.switchPanel('panel-buffer');
+        AudioController.play('night_start');
+        setTimeout(() => {
+            this.switchPanel('panel-mayor-id');
+            AudioController.play('mayor_identity');
+        }, 5000);
+    },
+
+    selectIdentity: function(type, el) {
+        document.querySelectorAll('.id-btn').forEach(b => b.classList.remove('selected'));
+        el.classList.add('selected');
+        setTimeout(() => {
+            this.renderWordPick();
+            this.switchPanel('panel-mayor-pick');
+            AudioController.play('mayor_pick');
+        }, 500);
+    },
+
+    renderWordPick: function() {
+        let html = '';
+        this.state.candidates.forEach((w, idx) => {
+            html += `<div class="word-card" onclick="app.pickWord(${idx}, this)">
+                <div class="card-text">${w.word}</div>
+                <div class="card-category">${w.category}</div>
+            </div>`;
+        });
+        document.getElementById('word-list').innerHTML = html;
+    },
+
+    pickWord: function(idx, el) {
+        this.state.targetWord = this.state.candidates[idx].word;
+        document.querySelectorAll('.word-card').forEach(b => b.classList.remove('card-selected'));
+        el.classList.add('card-selected');
+        setTimeout(() => { this.runNightSequence(); }, 500);
+    },
+
+    async runNightSequence() {
+        this.switchPanel('panel-night');
+        
+        const setStatus = (txt) => {
+            document.getElementById('night-status-text').style.display = 'block';
+            document.getElementById('night-word-container').style.display = 'none';
+            document.getElementById('night-status-text').innerText = txt;
+        };
+        
+        const setWord = () => {
+            document.getElementById('night-status-text').style.display = 'none';
+            document.getElementById('night-word-container').style.display = 'block';
+            document.querySelectorAll('.target-word').forEach(e => {
+                // 🌟 修复1：先移除过渡效果，瞬间显示
+                e.style.transition = 'none';
+                e.style.opacity = '1';
+                e.innerText = this.state.targetWord;
+            });
+        };
+        
+        const fadeOut = () => {
+            document.querySelectorAll('.target-word').forEach(e => {
+                // 恢复过渡并淡出
+                e.style.transition = 'opacity 2s ease-out';
+                // 强制回流
+                void e.offsetWidth;
+                e.style.opacity = '0';
+            });
+        };
+        
+        const wait = (ms) => new Promise(r => setTimeout(r, ms));
+
+        try {
+            setStatus("先知请睁眼"); AudioController.play('seer_open'); await wait(2500);
+            setWord(); await wait(7000); 
+            fadeOut(); await wait(2000);
+            
+            setStatus("先知请闭眼"); AudioController.play('seer_close'); await wait(3000);
+
+            setStatus("狼人请睁眼"); AudioController.play('wolf_open'); await wait(2500);
+            // 再次调用 setWord 会重置 opacity 为 1
+            setWord(); await wait(7000);
+            fadeOut(); await wait(2000);
+
+            setStatus("狼人请闭眼"); AudioController.play('wolf_close'); await wait(3000);
+
+            setStatus("天亮了！"); AudioController.play('day_break'); await wait(2000);
+            
+            this.startMainGame();
+        } catch(e) {
+            console.error(e);
+        }
+    },
+
+    startMainGame: function() {
+        this.switchPanel('panel-game');
+        AudioController.fadeOutTick();
+        this.state.paused = false;
+        this.updateTimerDisplay();
+        
+        if (this.state.timer) clearInterval(this.state.timer);
+        this.state.timer = setInterval(() => {
+            if(!this.state.paused) {
+                this.state.gameDuration--;
+                this.updateTimerDisplay();
+                if(this.state.gameDuration <= 0) {
+                    clearInterval(this.state.timer);
+                    this.switchPanel('panel-result');
+                }
+            }
+        }, 1000);
+    },
+
+    updateTimerDisplay: function() {
+        let m = Math.floor(this.state.gameDuration / 60).toString().padStart(2, '0');
+        let s = (this.state.gameDuration % 60).toString().padStart(2, '0');
+        document.getElementById('timer-display').innerText = `${m}:${s}`;
+    },
+
+    onWordGuessed: function() {
+        clearInterval(this.state.timer);
+        AudioController.stop('sfx_tick_tock');
+        AudioController.play('voice_assassinate');
+        setTimeout(() => this.switchPanel('panel-result'), 2000);
+    },
+
+    selectWinner: function(type, el) {
+        document.querySelectorAll('.winner-item').forEach(e => e.classList.remove('selected'));
+        el.classList.add('selected');
+        let sound = `sfx_win_${type}`;
+        if(type === 'wolf') sound = 'sfx_win_werewolf';
+        AudioController.play(sound);
+    },
+
+    resetGame: function() {
+        clearInterval(this.state.timer);
+        AudioController.stop('sfx_tick_tock');
+        this.switchPanel('panel-setup');
+    },
+    
+    pauseGame: function() {
+        this.state.paused = true;
+        AudioController.stop('sfx_tick_tock');
+        this.showModal('游戏已暂停', '点击确定继续游戏', 'PAUSE');
+    },
+    exitGame: function() {
+        this.showModal('结束游戏', '确定要强制结束并返回首页吗？', 'EXIT');
+    },
+    showModal: function(title, content, type) {
+        document.getElementById('modal-title').innerText = title;
+        document.getElementById('modal-body').innerText = content;
+        document.getElementById('modal-mask').classList.add('show');
+        document.getElementById('modal-confirm-btn').onclick = () => {
+            document.getElementById('modal-mask').classList.remove('show');
+            if(type === 'PAUSE') {
+                this.state.paused = false;
+                AudioController.play('game_resume');
+                // Resume tick if in early game? simplified to just resume.
+            } else if (type === 'EXIT') {
+                this.resetGame();
+            }
+        };
+    },
+    closeModal: function() { document.getElementById('modal-mask').classList.remove('show'); }
+};
+
+window.app = App;
+window.onload = function() {
+    App.init();
+};
+</script>
+</body>
+</html>
